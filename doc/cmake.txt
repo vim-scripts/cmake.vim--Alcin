@@ -1,0 +1,138 @@
+*cmake.txt* CMake Integration for Vim                *cmake*
+
+CONTENTS ~
+                                                   *cmake-contents*
+===========================================================================
+
+1. About                                           |cmake-about|
+2. Quick start                                     |cmake-quickstart|
+  2.1. Discovering CMake                           |cmake-quickstart-discover|
+  2.2. Installing the Plugin                       |cmake-quickstart-install|
+3. Options                                         |cmake-options|
+4. Methods                                         |cmake-methods|
+  4.1 Creating a Project                           |cmake-methods-create-project|
+  4.2 Building                                     |cmake-methods-build|
+  4.3 Cleaning                                     |cmake-methods-clean|
+
+===========================================================================
+
+ABOUT                                              *cmake-about*
+
+CMake is a "Cross-Platform Makefile generator". However, CMake can generate
+more than Makefiles; including Eclipse and KDevelop build systems, making it
+quite diverse in its output.
+
+The act of integrating CMake with Vim allows for developers to use the
+facilities of CMake without having to constantly switch back and forth. This
+plugin goes a step further and automatically sets 'makeprg' for you to help
+other tools related to Java, C++, C, Objective C or Fortan-based programming
+easily invoke CMake's version of the build system.
+
+'cmake' version 0.1.6 provides this integration with minimal effort to the
+developer using Vim.
+
+2. QUICK START ~
+                                                    *cmake-quickstart*
+Ensure that you have a working (discoverable in '$PATH' by Vim) version of
+CMake. You can check that CMake is invokable by Vim by running the following
+command: >
+
+  !cmake --version
+
+You should get output similar to the following: >
+
+  cmake version 2.8.10.1
+
+3. OPTIONS 
+                                                    |cmake-options|
+
+The options described are reflected with their default values.
+
+3.1. C++ COMPILER ~
+                     *cmake-options-cxx-compiler* *cmake-options-cpp-compiler*
+>
+  let g:cmake_cxx_compiler = 'clang++'
+
+Defines the default C++ compiler that CMake will use. 
+
+3.2. C COMPILER ~
+
+                                                    *cmake-options-c-compiler*
+>
+  let g:cmake_c_compiler = 'clang'
+
+Defines the default C compiler that CMake will use.
+
+3.3. BUILD DIRECTORIES ~
+                                                    *cmake-options-build-dirs*
+>
+  let g:cmake_build_dirs = [ "build" ]
+
+Defines a list of the names of directories to search for 'CMakeCache.txt'.
+
+3.4. BUILD CONFIGURATION TYPE ~
+                                                    *cmake-options-build-type*
+>
+  let g:cmake_build_type = "Debug"
+
+Defines the build configuration type to invoke CMake with. Some typical values
+for this is DEBUG, RELEASE, and RELWITHDEBINFO.
+
+3.5. INSTALLATION PREFIX ~
+                                                    *cmake-options-install-prefix*
+>
+  let g:cmake_install_prefix = "$HOME/.local"
+
+Defines the installation prefix at which the project will be installed at.
+
+3.6. BUILD SHARED LIBRARIES ~
+                                                    *cmake-options-build-shared-libs*
+>
+  let g:cmake_build_shared_libs = 1
+
+Determines whether or not libraries will be built as shared libraries by
+default.
+
+3.7. BUILD SHARED LIBRARIES ~
+                                                    *cmake-options-set-makeprg*
+>
+  let g:cmake_set_makeprg = 1
+
+Determines whether or not the 'makeprg' value in Vim will be set to a tweaked
+'make' where it builds using the files in your specified build directory.
+
+NOTE: This is a future support option and currently does nothing.
+
+
+4. METHODS
+
+                                                            |cmake-methods|
+
+There's a few methods binded to the editor for use of the developer. In the
+future, some of these methods might be automatically mapped to the keyboard
+within CMake files for easy use.
+
+4.1 CREATING A BUILD
+                              |cmake-methods-create-build| |:CMakeCreateBuild|
+
+
+`:CMakeCreateBuild` takes only one argument, the name of the directory that
+the build directory will be. It'll fail if the name isn't one of the values
+provided in `g:cmake_build_directories` so take care to use one of those.
+
+It'll make the directory if it doesn't exist, remove `CMakeCache.txt` if it
+exists (with confirmation) and invoke CMake within that directory.
+
+4.2 BUILDING A PROJECT
+                                        |cmake-methods-build| |:CMakeBuild|
+
+Invokes `make -C $CMAKE_BINARY_DIR all`, building all CMake targets at once.
+
+4.3 BUILDING A PROJECT
+                                        |cmake-methods-clean| |:CMakeClean|
+
+Invokes `make -C $CMAKE_BINARY_DIR clean`, cleaning the project of build
+artificats. 
+
+
+vim:tw=78:ts=8:ft=help:norl:
