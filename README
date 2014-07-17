@@ -1,3 +1,28 @@
 This is a mirror of http://www.vim.org/scripts/script.php?script_id=4731
 
-Learn about this plug-in at http://jalcine.github.io/cmake.vim
+cmake.vim 0.4.1 is a Vim plugin that allows you to use CMake within Vim for your projects. This is alpha-grade software and may turn your CMake project into a cat-overrun Telnet session.
+
+If lost, run :help cmake for a bit of guidance.
+
+# Requirements
+At the time of writing, cmake.vim has been tested with Vim 7.3+ in nocp mode and CMake 2.8.
+
+# Getting Started
+After you installed the plugin, just cd into the directory where the top-level CMakeLists.txt can be found and run:
+
+" Create a new binary directory for your clean project.
+:CMakeCreateProject <build-dir-name>
+
+" Build all of the targets.
+:CMakeBuild
+
+With that, you created (or re-configured in a vanilla-setup) a new binary directory and built the project.
+
+# Commands
+cmake.vim defines a few methods for generic interaction with CMake. Check out :help cmake-methods for more information.
+
+# Options
+In order for CMake to operate, it has to know where the build directory is located. This is done automatically by the plugin but it does need help in the event that you happen to build your CMake project in a sub-directory. Check out :help cmake-options for more information.
+
+# Integrations
+See :help cmake-integrations for tips on integrations cmake.vim with other plug-ins like Syntastic or YouCompleteMe. Long story short, it's freaking awesome but could use some work. With this version, the integrations are now target-specific, allowing for fine-grained integration for every single file.

@@ -1,90 +1,114 @@
-""""""""""""""""""""""""""""""""""""""""
-" @author: Jacky Alciné <me@jalcine.me>
-" @date:   2013-09-26 00:31:53 EDT
-"
-" Utility methods to manipulate CMake.
-""""""""""""""""""""""""""""""""""""""""
+" File:             autoload/cmake/util.vim
+" Description:      Power methods for the CMake plugin.
+" Author:           Jacky Alciné <me@jalcine.me>
+" License:          MIT
+" Website:          https://jalcine.github.io/cmake.vim
+" Version:          0.4.2
 
-func! cmake#util#binary_dir()
-  " If we found it already, don't waste effort.
-  if exists("g:cmake_binary_dir")
-    return g:cmake_binary_dir
+function! cmake#util#echo_msg(msg)
+  if empty(a:msg) | return | endif
+  redraw | echomsg "[cmake] " . a:msg | redraw
+endfunction
+
+" Function: cmake#util#binary_dir
+" Returns: On success, A file path with a trailing slash that points to the 
+" CMake binary project. On failure, an empty string.
+function! cmake#util#binary_dir()
+  if exists('g:cmake_root_binary_dir') && isdirectory(g:cmake_root_binary_dir)
+    return g:cmake_root_binary_dir
   endif
 
-  let l:proposed_dir = 0
-
-  " Check in the currenty directory as well.
+  " Collect directories that we'd search for the existance of that magic
+  " CMakeCache.txt file.
   let l:directories = g:cmake_build_directories + [ getcwd() ]
 
+  " Walk over each directory upwards and check if the file exists in it.
   for l:directory in l:directories
     let l:directory = fnamemodify(l:directory, ':p')
-    " TODO: Make paths absolute.
-    let l:proposed_cmake_file = findfile(directory . "/CMakeCache.txt", ".;")
+    let l:file = findfile(directory . '/CMakeCache.txt', '.;')
 
-    if filereadable(l:proposed_cmake_file)
-      " If we found it, drop off that CMakeCache.txt reference and cache the
-      " value.
-      let l:proposed_dir = substitute(l:proposed_cmake_file, "/CMakeCache.txt", "", "")
+    " Break out when we find something noteworthy.
+    if filereadable(l:file)
+      let g:cmake_root_binary_dir = simplify(fnamemodify(substitute(l:file, 
+            \ '/CMakeCache.txt', '', ''), ':p'))
+      break
     endif
   endfor
 
-  return l:proposed_dir
-endfunc!
-
-" TODO; Resolve path to absolute-ness.
-func! cmake#util#source_dir()
-  if cmake#util#binary_dir() == 0
-    return ""
-  endif
-
-  return cmake#util#read_from_cache("Project_SOURCE_DIR")
-endfunc!
-
-func! cmake#util#cmake_cache_file_path()
-  let l:dir = cmake#util#binary_dir()
-  if isdirectory(l:dir)
-    return l:dir . "/CMakeCache.txt"
+  " Save our hard work so we can use it later.
+  if exists('g:cmake_root_binary_dir')
+    return g:cmake_root_binary_dir
   endif
 
   return ""
-endfunc!
+endfunc
 
-func! cmake#util#read_from_cache(property)
-  let l:cmake_cache_file = cmake#util#cmake_cache_file_path()
-  let l:property_width = strlen(a:property) + 2
-
-  " If we can't find the cache file, then there's no point in trying to read
-  " it.
-  if !filereadable(cmake#util#cmake_cache_file_path())
+" Function: cmake#util#source_dir
+" Returns: On success, the path to the sources of the CMake project. On
+" failure, zero.
+function! cmake#util#source_dir()
+  if !cmake#util#has_project()
     return ""
   endif
 
-  " First, grep out this property.
-  let l:property_line = system("grep -E \"^" . a:property . ":\" " . l:cmake_cache_file)
-  if empty(l:property_line)
+  let dir = fnamemodify(cmake#cache#read('Project_SOURCE_DIR'), ':p')
+  return l:dir
+endfunc
+
+" Function: cmake#util#has_project
+" Returns: On success, whether or not this project has been configured at least
+" once.
+function! cmake#util#has_project()
+  let l:bindir = cmake#util#binary_dir()
+  if isdirectory(l:bindir)
+    return filereadable(simplify(l:bindir . '/CMakeCache.txt'))
+  else
     return 0
   endif
+endfunc
 
-  " Chop down the response to size.
-  let l:property_meta_value = system("echo '" . l:property_line . "' | cut -b " . l:property_width . "-")
+function! cmake#util#run_make(command)
+  let l:command = 'make -C ' . cmake#util#binary_dir() . ' ' . a:command
+  call cmake#util#shell_exec(l:command)
+endfunc
 
-  " Split it in half to get the resulting value and its type.
-  let l:property_fields = split(l:property_meta_value, "=", 1)
-  let l:property_fields[1] = substitute(l:property_fields[1], "\n", "", "")
-  let l:property_fields[1] = substitute(l:property_fields[1], "\n", "", "")
+function! cmake#util#run_cmake(command, binary_dir, source_dir)
+  let l:binary_dir = a:binary_dir
+  let l:source_dir = a:source_dir
 
-  return l:property_fields
-endfunc!
-
-func! cmake#util#write_to_cache(property,value)
-  " TODO: Use 'sed'.
-endfunc!
-
-func! cmake#util#run_make(command)
-  let l:command = "make -C " . cmake#util#binary_dir() . " " . a:command
-  if g:cmake_use_vimux == 1 && g:loaded_vimux == 1
-    call VimuxRunCommand(l:command)
-  else
-    return system(l:command)
+  " Auto-default to the root binary directory.
+  if empty(l:binary_dir) && empty(l:source_dir)
+    let l:binary_dir = cmake#util#binary_dir()
+    let l:source_dir = cmake#util#source_dir()
   endif
-endfunc!
+
+  if empty(l:source_dir) && !empty(l:binary_dir)
+    let l:source_dir = cmake#util#source_dir()
+  endif
+
+  if !empty(l:source_dir) && empty(l:binary_dir)
+    let l:binary_dir = "/tmp/vim-cmake-" . tempname()
+    call mkdir(l:binary_dir)
+  endif
+
+  let l:command = 'cd ' . l:binary_dir . ' && cmake ' . a:command . ' ' .
+    \ l:binary_dir . ' ' . l:source_dir
+
+  return cmake#util#shell_exec(l:command)
+endfunc
+
+function! cmake#util#shell_exec(command)
+  if g:cmake_use_dispatch == 1 && g:loaded_dispatch == 1
+    execute 'Dispatch ' . a:command . '<CR>'
+  else
+    return system(a:command)
+  endif
+endfunc
+
+function! cmake#util#shell_bgexec(command)
+  if g:cmake_use_dispatch == 1
+    execute 'Start! ' . a:command . '<CR>'
+  else
+    call cmake#util#shell_exec(a:command)
+  endif
+endfunc
